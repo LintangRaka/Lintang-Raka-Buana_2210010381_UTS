@@ -1,6 +1,15 @@
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
@@ -21,7 +30,7 @@ public class bukuAlamat extends javax.swing.JFrame {
     public bukuAlamat() {
         initComponents();
     }
-    
+     private List<Object[]> originalData = new ArrayList<>();// Menyimpan data asli dalam list sebelum pencarian
      private void batal() {
         txtNama.setText("");
         buttonGroup2.clearSelection();
@@ -31,7 +40,21 @@ public class bukuAlamat extends javax.swing.JFrame {
         txtTlp.setText("");
         txtEmail.setText("");
         txtAreaCatatan.setText("");
+        
         tabelAlamat.clearSelection();
+         DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel();
+    
+        // Kosongkan tabel
+        model.setRowCount(0);
+
+        // Tambahkan kembali seluruh data yang ada di originalData list
+        for (Object[] row : originalData) {
+            model.addRow(row); // Menambahkan data yang ada di originalData ke tabel
+        }
+
+        // Mengosongkan kolom pencarian
+        txtCariData.setText("");
+        
     }
    private void simpanAlamat() {
     DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel(); // Mendapatkan model tabel
@@ -139,6 +162,107 @@ public class bukuAlamat extends javax.swing.JFrame {
         JOptionPane.showMessageDialog(null, "Pilih data yang ingin diedit."); // Pesan jika tidak ada data yang dipilih
     }
 }
+   private void imporData() {
+    // Membuka dialog untuk memilih file teks
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Buka File Alamat"); // Set judul dialog
+    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Text Files", "txt")); // Filter hanya file .txt
+    int result = fileChooser.showOpenDialog(null); // Menampilkan dialog pilih file
+    if (result == JFileChooser.APPROVE_OPTION) { // Jika pengguna memilih file
+        File file = fileChooser.getSelectedFile(); // Dapatkan file yang dipilih
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) { // Membuka file untuk dibaca
+            DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel(); // Mendapatkan model tabel
+            String line; // Variabel untuk menyimpan baris teks
+            while ((line = br.readLine()) != null) { // Membaca setiap baris dari file
+                String[] data = line.split(","); // Memisahkan data berdasarkan delimiter koma
+                model.addRow(data); // Tambahkan data ke tabel
+            }
+            JOptionPane.showMessageDialog(null, "Data Alamat Berhasil Diimpor dari File TXT!"); // Tampilkan pesan sukses
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Terjadi Kesalahan: " + ex.getMessage()); // Tampilkan pesan error
+        }
+    }
+}
+   private void eksporData() {
+    // Membuka dialog untuk memilih lokasi file teks
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Simpan File Alamat"); // Set judul dialog
+    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Text Files", "txt")); // Filter hanya file .txt
+    int result = fileChooser.showSaveDialog(null); // Menampilkan dialog simpan file
+    if (result == JFileChooser.APPROVE_OPTION) { // Jika pengguna memilih file
+        File file = fileChooser.getSelectedFile(); // Dapatkan file yang dipilih
+        // Tambahkan ekstensi .txt jika belum ada
+        if (!file.getName().endsWith(".txt")) {
+            file = new File(file.getAbsolutePath() + ".txt");
+        }
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) { // Membuka file untuk ditulis
+            DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel(); // Mendapatkan model tabel
+            for (int i = 0; i < model.getRowCount(); i++) { // Looping setiap baris pada tabel
+                StringBuilder sb = new StringBuilder(); // StringBuilder untuk membangun baris teks
+                for (int j = 0; j < model.getColumnCount(); j++) { // Looping setiap kolom pada baris
+                    sb.append(model.getValueAt(i, j).toString()); // Tambahkan nilai kolom
+                    if (j < model.getColumnCount() - 1) sb.append(","); // Tambahkan koma sebagai pemisah kecuali kolom terakhir
+                }
+                bw.write(sb.toString()); // Tulis baris ke file
+                bw.newLine(); // Tambahkan baris baru
+            }
+            JOptionPane.showMessageDialog(null, "Data Alamat Berhasil Diekspor ke File TXT!"); // Tampilkan pesan sukses
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Terjadi Kesalahan: " + ex.getMessage()); // Tampilkan pesan error
+        }
+    }
+}
+
+  private void cariData() {
+    String searchText = txtCariData.getText().trim().toLowerCase(); // Ambil teks pencarian dan ubah menjadi lowercase
+    DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel();
+    
+    // Cek apakah originalData sudah terisi atau belum, jika belum, isi dengan data tabel
+    if (originalData.isEmpty()) {
+        for (int i = 0; i < model.getRowCount(); i++) {
+            Object[] rowData = new Object[]{
+                model.getValueAt(i, 0), // Nama
+                model.getValueAt(i, 1), // Jenis Kelamin
+                model.getValueAt(i, 2), // Tanggal Lahir
+                model.getValueAt(i, 3), // Agama
+                model.getValueAt(i, 4), // Alamat
+                model.getValueAt(i, 5), // Telepon
+                model.getValueAt(i, 6), // Email
+                model.getValueAt(i, 7)  // Catatan
+            };
+            originalData.add(rowData); // Menambahkan data ke dalam list
+        }
+    }
+    
+    // Kosongkan tabel sebelum menambahkan hasil pencarian
+    model.setRowCount(0);
+
+    boolean found = false; // Flag untuk memeriksa apakah data ditemukan
+    
+    // Jika ada teks pencarian
+    if (!searchText.isEmpty()) {
+        // Loop untuk memeriksa setiap baris dalam list
+        for (Object[] row : originalData) {
+            String nama = row[0].toString().toLowerCase(); // Ambil nama (kolom pertama)
+            // Jika nama mengandung teks pencarian
+            if (nama.contains(searchText)) {
+                model.addRow(row); // Menambahkan data yang ditemukan ke tabel
+                found = true; // Tandai bahwa data ditemukan
+            }
+        }
+
+        // Jika data tidak ditemukan, tampilkan pesan
+        if (!found) {
+            JOptionPane.showMessageDialog(null, "Nama tidak ditemukan");
+        }
+    }
+}
+
+
+
+
+
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -191,6 +315,9 @@ public class bukuAlamat extends javax.swing.JFrame {
         btnUbah = new javax.swing.JButton();
         btnImpor = new javax.swing.JButton();
         btnKeluar = new javax.swing.JButton();
+        jLabel10 = new javax.swing.JLabel();
+        txtCariData = new javax.swing.JTextField();
+        btnCariData = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -411,12 +538,13 @@ public class bukuAlamat extends javax.swing.JFrame {
                                     .addComponent(txtNama))
                                 .addGroup(jPanel5Layout.createSequentialGroup()
                                     .addGap(8, 8, 8)
-                                    .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(tanggalLahir, javax.swing.GroupLayout.PREFERRED_SIZE, 363, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                        .addComponent(tanggalLahir, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 363, Short.MAX_VALUE)
                                         .addGroup(jPanel5Layout.createSequentialGroup()
                                             .addComponent(rbLaki, javax.swing.GroupLayout.PREFERRED_SIZE, 114, javax.swing.GroupLayout.PREFERRED_SIZE)
                                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                            .addComponent(rbPerempuan, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)))))))
+                                            .addComponent(rbPerempuan, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addGap(109, 109, 109)))))))
                     .addContainerGap()))
         );
         jPanel5Layout.setVerticalGroup(
@@ -501,6 +629,11 @@ public class bukuAlamat extends javax.swing.JFrame {
 
         btnEkspor.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         btnEkspor.setText("Ekspor Data");
+        btnEkspor.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnEksporActionPerformed(evt);
+            }
+        });
 
         btnUbah.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         btnUbah.setText("Ubah Data");
@@ -526,23 +659,46 @@ public class bukuAlamat extends javax.swing.JFrame {
             }
         });
 
+        jLabel10.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        jLabel10.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel10.setText("Cari Nama :");
+
+        txtCariData.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+
+        btnCariData.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        btnCariData.setText("Cari");
+        btnCariData.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnCariDataActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addComponent(btnHapus, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(27, 27, 27)
-                        .addComponent(btnUbah, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addComponent(btnEkspor, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addComponent(btnHapus, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(27, 27, 27)
+                                .addComponent(btnUbah, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addComponent(btnEkspor, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btnImpor, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(btnImpor, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 191, Short.MAX_VALUE)
-                .addComponent(btnKeluar, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnKeluar, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(txtCariData, javax.swing.GroupLayout.PREFERRED_SIZE, 305, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(11, 11, 11)
+                        .addComponent(btnCariData, javax.swing.GroupLayout.PREFERRED_SIZE, 118, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 66, Short.MAX_VALUE)))
                 .addContainerGap())
             .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jPanel3Layout.createSequentialGroup()
@@ -553,7 +709,12 @@ public class bukuAlamat extends javax.swing.JFrame {
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                .addContainerGap(348, Short.MAX_VALUE)
+                .addContainerGap(259, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel10)
+                    .addComponent(txtCariData, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnCariData))
+                .addGap(70, 70, 70)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnHapus)
                     .addComponent(btnUbah)
@@ -590,7 +751,7 @@ public class bukuAlamat extends javax.swing.JFrame {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(21, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -616,7 +777,7 @@ public class bukuAlamat extends javax.swing.JFrame {
     }//GEN-LAST:event_cmbAgamaActionPerformed
 
     private void btnImporActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImporActionPerformed
-        // TODO add your handling code here:
+        imporData();        // TODO add your handling code here:
     }//GEN-LAST:event_btnImporActionPerformed
 
     private void btnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSimpanActionPerformed
@@ -646,6 +807,14 @@ public class bukuAlamat extends javax.swing.JFrame {
     private void btnKeluarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnKeluarActionPerformed
              System.exit(0); // Menutup aplikasi        // TODO add your handling code here:
     }//GEN-LAST:event_btnKeluarActionPerformed
+
+    private void btnEksporActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEksporActionPerformed
+        eksporData();        // TODO add your handling code here:
+    }//GEN-LAST:event_btnEksporActionPerformed
+
+    private void btnCariDataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCariDataActionPerformed
+            cariData();        // TODO add your handling code here:
+    }//GEN-LAST:event_btnCariDataActionPerformed
 
     /**
      * @param args the command line arguments
@@ -684,6 +853,7 @@ public class bukuAlamat extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBatal;
+    private javax.swing.JButton btnCariData;
     private javax.swing.JButton btnEkspor;
     private javax.swing.JButton btnHapus;
     private javax.swing.JButton btnImpor;
@@ -701,6 +871,7 @@ public class bukuAlamat extends javax.swing.JFrame {
     private javax.swing.JLabel colon7;
     private javax.swing.JLabel colon8;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -722,6 +893,7 @@ public class bukuAlamat extends javax.swing.JFrame {
     private com.toedter.calendar.JDateChooser tanggalLahir;
     private javax.swing.JTextArea txtAreaAlamat;
     private javax.swing.JTextArea txtAreaCatatan;
+    private javax.swing.JTextField txtCariData;
     private javax.swing.JTextField txtEmail;
     private javax.swing.JTextField txtNama;
     private javax.swing.JTextField txtTlp;
