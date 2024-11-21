@@ -1,4 +1,3 @@
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -8,6 +7,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -30,32 +30,29 @@ public class bukuAlamat extends javax.swing.JFrame {
     public bukuAlamat() {
         initComponents();
     }
-     private List<Object[]> originalData = new ArrayList<>();// Menyimpan data asli dalam list sebelum pencarian
-     private void batal() {
-        txtNama.setText("");
-        buttonGroup2.clearSelection();
-        tanggalLahir.setDate(null);
-        cmbAgama.setSelectedIndex(0);
-        txtAreaAlamat.setText("");
-        txtTlp.setText("");
-        txtEmail.setText("");
-        txtAreaCatatan.setText("");
-        
-        tabelAlamat.clearSelection();
-         DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel();
-    
-        // Kosongkan tabel
-        model.setRowCount(0);
+     private List<Object[]> originalData = new ArrayList<>(); // Menyimpan data asli sebelum pencarian
+    // Metode untuk membatalkan input dan menyegarkan tabel ke keadaan awal
+    private void batal() {
+        txtNama.setText(""); // Kosongkan field teks untuk nama
+        buttonGroup2.clearSelection(); // Hapus pilihan pada grup tombol radio (jenis kelamin)
+        tanggalLahir.setDate(null); // Reset tanggal lahir di JDateChooser
+        cmbAgama.setSelectedIndex(0); // Reset combo box agama ke pilihan pertama
+        txtAreaAlamat.setText(""); // Kosongkan area teks untuk alamat
+        txtTlp.setText(""); // Kosongkan field teks untuk telepon
+        txtEmail.setText(""); // Kosongkan field teks untuk email
+        txtAreaCatatan.setText(""); // Kosongkan area teks untuk catatan
+        txtCariData.setText(""); // Kosongkan field teks pencarian
 
-        // Tambahkan kembali seluruh data yang ada di originalData list
+        tabelAlamat.clearSelection(); // Hapus seleksi pada tabel
+
+        // Segarkan tabel dengan data dari `originalData`
+        DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel();
+        model.setRowCount(0); // Kosongkan tabel
         for (Object[] row : originalData) {
-            model.addRow(row); // Menambahkan data yang ada di originalData ke tabel
+            model.addRow(row); // Tambahkan kembali data dari `originalData` ke tabel
         }
+}
 
-        // Mengosongkan kolom pencarian
-        txtCariData.setText("");
-        
-    }
    private void simpanAlamat() {
     DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel(); // Mendapatkan model tabel
     int selectedRow = tabelAlamat.getSelectedRow(); // Mendapatkan indeks baris yang dipilih
@@ -88,19 +85,34 @@ public class bukuAlamat extends javax.swing.JFrame {
             model.setValueAt(txtTlp.getText(), selectedRow, 5); // Telepon
             model.setValueAt(txtEmail.getText(), selectedRow, 6); // Email
             model.setValueAt(txtAreaCatatan.getText(), selectedRow, 7); // Catatan
+
+            // Perbarui data di originalData
+            originalData.set(selectedRow, new Object[]{
+                txtNama.getText(),
+                gender,
+                tanggalLahirStr,
+                cmbAgama.getSelectedItem().toString(),
+                txtAreaAlamat.getText(),
+                txtTlp.getText(),
+                txtEmail.getText(),
+                txtAreaCatatan.getText()
+            });
+
             JOptionPane.showMessageDialog(null, "Data Berhasil Diubah");
         } else {
             // Jika tidak ada baris dipilih (tambah mode), tambahkan baris baru
-            model.addRow(new Object[]{
-                txtNama.getText(), // Nama
-                gender, // Jenis Kelamin
-                tanggalLahirStr, // Tanggal Lahir
-                cmbAgama.getSelectedItem().toString(), // Agama
-                txtAreaAlamat.getText(), // Alamat
-                txtTlp.getText(), // Telepon
-                txtEmail.getText(), // Email
-                txtAreaCatatan.getText() // Catatan
-            });
+            Object[] newData = new Object[]{
+                txtNama.getText(),
+                gender,
+                tanggalLahirStr,
+                cmbAgama.getSelectedItem().toString(),
+                txtAreaAlamat.getText(),
+                txtTlp.getText(),
+                txtEmail.getText(),
+                txtAreaCatatan.getText()
+            };
+            model.addRow(newData);
+            originalData.add(newData); // Tambahkan data ke originalData
             JOptionPane.showMessageDialog(null, "Data Berhasil Disimpan");
         }
 
@@ -108,16 +120,26 @@ public class bukuAlamat extends javax.swing.JFrame {
     }
 }
 
-    private void hapusAlamat() {
+
+   private void hapusAlamat() {
+        // Mendapatkan model dari tabelAlamat (yang berisi data tabel)
         DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel();
+
+        // Mendapatkan indeks baris yang dipilih pada tabel
         int selectedRow = tabelAlamat.getSelectedRow();
+
+        // Mengecek apakah ada baris yang dipilih
         if (selectedRow != -1) {
+            // Jika ada baris yang dipilih, hapus baris tersebut berdasarkan indeksnya
             model.removeRow(selectedRow);
+
+            // Menampilkan pesan bahwa data berhasil dihapus
             JOptionPane.showMessageDialog(null, "Data berhasil dihapus!");
         } else {
+            // Jika tidak ada baris yang dipilih, tampilkan pesan peringatan
             JOptionPane.showMessageDialog(null, "Pilih data yang ingin dihapus.");
         }
-    }
+}
    private void editAlamat() {
     DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel(); // Mendapatkan model data dari tabel
     int selectedRow = tabelAlamat.getSelectedRow(); // Mendapatkan baris yang dipilih oleh pengguna di tabel
@@ -162,27 +184,37 @@ public class bukuAlamat extends javax.swing.JFrame {
         JOptionPane.showMessageDialog(null, "Pilih data yang ingin diedit."); // Pesan jika tidak ada data yang dipilih
     }
 }
-   private void imporData() {
-    // Membuka dialog untuk memilih file teks
+ private void imporData() {
     JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setDialogTitle("Buka File Alamat"); // Set judul dialog
-    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Text Files", "txt")); // Filter hanya file .txt
-    int result = fileChooser.showOpenDialog(null); // Menampilkan dialog pilih file
-    if (result == JFileChooser.APPROVE_OPTION) { // Jika pengguna memilih file
-        File file = fileChooser.getSelectedFile(); // Dapatkan file yang dipilih
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) { // Membuka file untuk dibaca
-            DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel(); // Mendapatkan model tabel
-            String line; // Variabel untuk menyimpan baris teks
-            while ((line = br.readLine()) != null) { // Membaca setiap baris dari file
-                String[] data = line.split(","); // Memisahkan data berdasarkan delimiter koma
-                model.addRow(data); // Tambahkan data ke tabel
+    fileChooser.setDialogTitle("Buka File Alamat");
+    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Text Files", "txt"));
+    int result = fileChooser.showOpenDialog(null);
+
+    if (result == JFileChooser.APPROVE_OPTION) {
+        File file = fileChooser.getSelectedFile();
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel();
+            String line;
+
+            // Tidak mengosongkan `originalData` agar data sebelumnya tetap ada
+            while ((line = br.readLine()) != null) {
+                String[] data = line.split(",");
+
+                // Tambahkan data baru ke tabel
+                model.addRow(data);
+
+                // Tambahkan data baru ke `originalData`
+                originalData.add(data);
             }
-            JOptionPane.showMessageDialog(null, "Data Alamat Berhasil Diimpor dari File TXT!"); // Tampilkan pesan sukses
+            JOptionPane.showMessageDialog(null, "Data Alamat Berhasil Diimpor dari File TXT!");
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Terjadi Kesalahan: " + ex.getMessage()); // Tampilkan pesan error
+            JOptionPane.showMessageDialog(null, "Terjadi Kesalahan: " + ex.getMessage());
         }
     }
 }
+
+
+
    private void eksporData() {
     // Membuka dialog untuk memilih lokasi file teks
     JFileChooser fileChooser = new JFileChooser();
@@ -217,23 +249,6 @@ public class bukuAlamat extends javax.swing.JFrame {
     String searchText = txtCariData.getText().trim().toLowerCase(); // Ambil teks pencarian dan ubah menjadi lowercase
     DefaultTableModel model = (DefaultTableModel) tabelAlamat.getModel();
     
-    // Cek apakah originalData sudah terisi atau belum, jika belum, isi dengan data tabel
-    if (originalData.isEmpty()) {
-        for (int i = 0; i < model.getRowCount(); i++) {
-            Object[] rowData = new Object[]{
-                model.getValueAt(i, 0), // Nama
-                model.getValueAt(i, 1), // Jenis Kelamin
-                model.getValueAt(i, 2), // Tanggal Lahir
-                model.getValueAt(i, 3), // Agama
-                model.getValueAt(i, 4), // Alamat
-                model.getValueAt(i, 5), // Telepon
-                model.getValueAt(i, 6), // Email
-                model.getValueAt(i, 7)  // Catatan
-            };
-            originalData.add(rowData); // Menambahkan data ke dalam list
-        }
-    }
-    
     // Kosongkan tabel sebelum menambahkan hasil pencarian
     model.setRowCount(0);
 
@@ -241,7 +256,7 @@ public class bukuAlamat extends javax.swing.JFrame {
     
     // Jika ada teks pencarian
     if (!searchText.isEmpty()) {
-        // Loop untuk memeriksa setiap baris dalam list
+        // Loop untuk memeriksa setiap baris dalam `originalData`
         for (Object[] row : originalData) {
             String nama = row[0].toString().toLowerCase(); // Ambil nama (kolom pertama)
             // Jika nama mengandung teks pencarian
@@ -255,14 +270,25 @@ public class bukuAlamat extends javax.swing.JFrame {
         if (!found) {
             JOptionPane.showMessageDialog(null, "Nama tidak ditemukan");
         }
+    } else {
+        // Jika teks pencarian kosong, tampilkan semua data dari `originalData`
+        for (Object[] row : originalData) {
+            model.addRow(row);
+        }
+    }
+}
+private void tampilkanOriginalData() {
+    // Menampilkan pesan untuk menunjukkan bahwa data originalData sedang ditampilkan
+    System.out.println("Isi originalData:");
+    
+    // Melakukan iterasi pada setiap elemen dalam originalData (yang berupa array of Object)
+    for (Object[] row : originalData) {
+        // Menampilkan isi setiap baris (row) yang ada dalam originalData
+        System.out.println(Arrays.toString(row));
     }
 }
 
 
-
-
-
-    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -409,7 +435,7 @@ public class bukuAlamat extends javax.swing.JFrame {
         });
 
         cmbAgama.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
-        cmbAgama.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Islam", "Kristen Protestan", "Kristen Katolik", "Hindu", "Buddha", "Konghucu" }));
+        cmbAgama.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "-- Pilih --", "Islam", "Kristen Protestan", "Kristen Katolik", "Hindu", "Buddha", "Konghucu" }));
         cmbAgama.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cmbAgamaActionPerformed(evt);
@@ -777,24 +803,30 @@ public class bukuAlamat extends javax.swing.JFrame {
     }//GEN-LAST:event_cmbAgamaActionPerformed
 
     private void btnImporActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImporActionPerformed
-        imporData();        // TODO add your handling code here:
+        imporData(); //Memanggil Method
+        tampilkanOriginalData(); //Memanggil Method
+        // TODO add your handling code here:
     }//GEN-LAST:event_btnImporActionPerformed
 
     private void btnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSimpanActionPerformed
-        simpanAlamat();
+        simpanAlamat();//Memanggil Method
+        tampilkanOriginalData();//Memanggil Method
         // TODO add your handling code here:
     }//GEN-LAST:event_btnSimpanActionPerformed
 
     private void btnBatalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBatalActionPerformed
-        batal();        // TODO add your handling code here:
+        batal();     //Memanggil Method  
+        // TODO add your handling code here:
     }//GEN-LAST:event_btnBatalActionPerformed
 
     private void btnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHapusActionPerformed
-        hapusAlamat();        // TODO add your handling code here:
+        hapusAlamat();  //Memanggil Method
+        // TODO add your handling code here:
     }//GEN-LAST:event_btnHapusActionPerformed
 
     private void btnUbahActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUbahActionPerformed
-        editAlamat();        // TODO add your handling code here:
+        editAlamat();   //Memanggil Method
+        // TODO add your handling code here:
     }//GEN-LAST:event_btnUbahActionPerformed
 
     private void txtTlpKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtTlpKeyTyped
@@ -809,11 +841,13 @@ public class bukuAlamat extends javax.swing.JFrame {
     }//GEN-LAST:event_btnKeluarActionPerformed
 
     private void btnEksporActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEksporActionPerformed
-        eksporData();        // TODO add your handling code here:
+        eksporData();   //Memanggil Method
+        // TODO add your handling code here:
     }//GEN-LAST:event_btnEksporActionPerformed
 
     private void btnCariDataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCariDataActionPerformed
-            cariData();        // TODO add your handling code here:
+            cariData(); //Memanggil Method
+            // TODO add your handling code here:
     }//GEN-LAST:event_btnCariDataActionPerformed
 
     /**
